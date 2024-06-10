@@ -1,4 +1,3 @@
-from datetime import timedelta
 from django.contrib.auth import get_user_model
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -13,7 +12,9 @@ from .serializers import UserSerializer, FriendRequestSerializer
 
 CustomUser = get_user_model()
 
-
+class UserPagination(PageNumberPagination):
+    page_size = 10
+    
 class SignupView(generics.CreateAPIView):
     """ To handle user signup and returns the user data. """
     queryset = CustomUser.objects.all()
@@ -23,9 +24,8 @@ class SignupView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save(password=self.request.data['password'])
 
-
 class LoginView(APIView):
-    """ To handle Login and return token. """
+    """ To handle Login and return access_token and refresh_token. """
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
@@ -41,7 +41,6 @@ class LoginView(APIView):
             })
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 class UserSearchView(generics.ListAPIView):
     """
        Returns list of user or a specific user based on the search keyword 
@@ -49,14 +48,13 @@ class UserSearchView(generics.ListAPIView):
     """
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = PageNumberPagination
+    pagination_class = UserPagination
 
     def get_queryset(self):
         keyword = self.request.query_params.get('q', '').strip().lower()
         return CustomUser.objects.filter(
             Q(email__iexact=keyword) | Q(username__icontains=keyword) | Q(first_name__icontains=keyword) | Q(last_name__icontains=keyword)
         )
-
 
 class SendFriendRequestView(APIView):
     """ View to handle the sending of friend requests with proper validation and rate limiting. """
@@ -75,9 +73,7 @@ class SendFriendRequestView(APIView):
             FriendRequest.objects.create(sender=sender, receiver=receiver)
             return Response({'detail': 'Friend request sent'}, status=status.HTTP_201_CREATED)
         
-        return Response({'detail': 'Error sending friend request. Please try after some time!'}, status=status.HTTP_400_BAD_REQUEST)
-
-        
+        return Response({'detail': 'Error sending friend request. Please try after some time!'}, status=status.HTTP_400_BAD_REQUEST)        
 class RespondFriendRequestView(APIView):
     """
        Returns and respond to a specific friend request with an
@@ -100,7 +96,6 @@ class RespondFriendRequestView(APIView):
             return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({'detail': 'No friend request found. Please try after some time!'}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class FriendListView(generics.ListAPIView):
     """
