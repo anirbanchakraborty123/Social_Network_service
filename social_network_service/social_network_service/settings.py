@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     "social_network_api",
     "django_ratelimit",
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -148,3 +149,5 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379",
     }
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
